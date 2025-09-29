@@ -191,7 +191,7 @@ func (s service) generateCode() (int, error) {
 func (s service) VerifyCode(ctx context.Context, input dto.VerifyCodeRequest) (string, error) {
 	var token string
 
-	user, err := s.userRepo.GetUserByEmail(input.Email)
+	user, err := s.userRepo.GetUserByEmail(ctx, nil, input.Email)
 	if err != nil {
 		return "", errors.New("user not found")
 	}
@@ -209,7 +209,7 @@ func (s service) VerifyCode(ctx context.Context, input dto.VerifyCodeRequest) (s
 		return "", err
 	}
 
-	err = s.userRepo.UpdateUserIsVerified(user.Id, true)
+	err = s.userRepo.UpdateUserIsVerified(ctx, user.Id, true)
 	if err != nil {
 		return "", err
 
@@ -219,21 +219,19 @@ func (s service) VerifyCode(ctx context.Context, input dto.VerifyCodeRequest) (s
 }
 
 func (s service) VerifyEmail(ctx context.Context, input dto.VerifyEmailRequest) error {
-	_, err := s.userRepo.GetUserByEmail(input.Email)
+	exists, err := s.userRepo.IsUserExistsWithEmail(ctx, nil, input.Email)
 
-	if err == nil {
+	if exists {
 		return errors.New("user already exists")
+	}
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func (s service) ForgotPassword(ctx context.Context, input dto.ForgotPasswordRequest) error {
-	// _, err := s.userRepo.GetUserByEmail(input.Email)
-
-	// if err == nil {
-	// 	return errors.New("user already exists")
-	// }
 
 	return nil
 }

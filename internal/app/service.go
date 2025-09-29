@@ -1,14 +1,17 @@
 package app
 
-import "github.com/spf13/viper"
+import (
+	"github.com/sandarioon/moto-alert-backend-go/models/dto"
+	"github.com/spf13/viper"
+)
 
 type service struct {
 }
 
 type Service interface {
 	GetAbout() (string, error)
-	GetSocialLinks() ([]SocialLink, error)
-	GetSettings() (AppSettings, error)
+	GetSocialLinks() []dto.SocialLink
+	GetSettings() (dto.AppSettings, error)
 }
 
 func NewService() Service {
@@ -21,14 +24,8 @@ func (s service) GetAbout() (string, error) {
 	return text, nil
 }
 
-type SocialLink struct {
-	Type string `json:"type"`
-	Name string `json:"name"`
-	Link string `json:"link"`
-}
-
-func (s service) GetSocialLinks() ([]SocialLink, error) {
-	socialLinks := []SocialLink{
+func (s service) GetSocialLinks() []dto.SocialLink {
+	socialLinks := []dto.SocialLink{
 		{
 			Type: "Telegram",
 			Name: "Канал в Telegram",
@@ -51,16 +48,11 @@ func (s service) GetSocialLinks() ([]SocialLink, error) {
 		},
 	}
 
-	return socialLinks, nil
+	return socialLinks
 }
 
-type AppSettings struct {
-	Env     string `json:"env"`
-	Version string `json:"version"`
-}
-
-func (s service) GetSettings() (AppSettings, error) {
-	settings := AppSettings{
+func (s service) GetSettings() (dto.AppSettings, error) {
+	settings := dto.AppSettings{
 		Env:     viper.GetString("general.env"),
 		Version: "1.0.0",
 	}

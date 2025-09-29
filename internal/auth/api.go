@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sandarioon/moto-alert-backend-go/internal/errors"
-	"github.com/sandarioon/moto-alert-backend-go/models"
 	"github.com/sandarioon/moto-alert-backend-go/models/dto"
 )
 
@@ -14,7 +13,6 @@ type resource struct {
 	service Service
 }
 
-// RegisterHandlers sets up the routing of the HTTP handlers.
 func RegisterHandlers(r *gin.RouterGroup, service Service) {
 	res := resource{service}
 
@@ -48,10 +46,10 @@ func (r resource) createUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
+	c.JSON(http.StatusOK, dto.Response{
 		Status:  http.StatusCreated,
 		Data:    map[string]string{},
-		Message: "OK",
+		Message: dto.MessageOK,
 	})
 }
 
@@ -81,12 +79,12 @@ func (r resource) verifyCode(c *gin.Context) {
 
 	println(token)
 
-	c.JSON(http.StatusOK, models.Response{
+	c.JSON(http.StatusOK, dto.Response{
 		Status: http.StatusOK,
 		Data: map[string]string{
 			"token": token,
 		},
-		Message: "OK",
+		Message: dto.MessageOK,
 	})
 
 }
@@ -108,10 +106,10 @@ func (r resource) verifyEmail(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
+	c.JSON(http.StatusOK, dto.Response{
 		Status:  http.StatusOK,
 		Data:    map[string]string{},
-		Message: "OK",
+		Message: dto.MessageOK,
 	})
 }
 
@@ -131,10 +129,10 @@ func (r resource) forgotPassword(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
+	c.JSON(http.StatusOK, dto.Response{
 		Status:  http.StatusOK,
 		Data:    map[string]string{},
-		Message: "OK",
+		Message: dto.MessageOK,
 	})
 }
 

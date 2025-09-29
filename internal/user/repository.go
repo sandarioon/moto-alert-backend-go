@@ -11,15 +11,16 @@ import (
 
 	"github.com/sandarioon/moto-alert-backend-go/internal/transaction"
 	"github.com/sandarioon/moto-alert-backend-go/models"
+	postgres "github.com/sandarioon/moto-alert-backend-go/pkg/database"
 )
 
 const usersTable = "users"
 
 type userRepository struct {
-	db *sql.DB
+	db *postgres.DBLogger
 }
 
-func NewRepository(db *sql.DB) *userRepository {
+func NewRepository(db *postgres.DBLogger) *userRepository {
 	return &userRepository{db: db}
 }
 
@@ -100,7 +101,6 @@ func (r *userRepository) IsUserExistsWithEmail(ctx context.Context, tx transacti
 		return false, errors.New("failed to check if user exists with email. Err: " + err.Error())
 	}
 
-	// logs.PrintSql(true, query, params...)
 	return exists, nil
 }
 
@@ -125,11 +125,91 @@ func (r *userRepository) IsUserExistsWithPhone(ctx context.Context, tx transacti
 	return exists, nil
 }
 
-func (r userRepository) GetUserByEmail(email string) (models.User, error) {
+func (r userRepository) GetUserByEmail(ctx context.Context, tx transaction.Transaction, email string) (models.User, error) {
 	var user models.User
-	query := fmt.Sprintf("SELECT * FROM %s WHERE email = ?;", usersTable)
 
-	err := r.db.QueryRow(query, strings.ToLower(email)).Scan(&user)
+	query := fmt.Sprintf(`SELECT 
+		id,
+		code,
+		email,
+		first_name,
+		last_name,
+		username,
+		expo_push_token,
+		gender,
+		phone,
+		longitude,
+		latitude,
+		bike_model,
+		comment,
+		last_auth,
+		geo_updated_at,
+		created_at,
+		accident_id,
+		blood_group,
+		height_cm,
+		weight_kg,
+		date_of_birth,
+		chronic_diseases,
+		allergies,
+		medications,
+		geom,
+		is_banned,
+		is_verified,
+		is_deleted,
+		uuid,
+		is_qr_code_enabled,
+		has_hypertension,
+		has_hepatitis,
+		has_hiv
+	FROM 
+		%s
+	WHERE 
+		email = $1;`, usersTable)
+	params := []any{email}
+
+	var row *sql.Row
+	if tx != nil {
+		row = tx.QueryRowContext(ctx, query, params...)
+	} else {
+		row = r.db.QueryRowContext(ctx, query, params...)
+	}
+
+	err := row.Scan(
+		&user.Id,
+		&user.Code,
+		&user.Email,
+		&user.FirstName,
+		&user.LastName,
+		&user.Username,
+		&user.ExpoPushToken,
+		&user.Gender,
+		&user.Phone,
+		&user.Longitude,
+		&user.Latitude,
+		&user.BikeModel,
+		&user.Comment,
+		&user.LastAuth,
+		&user.GeoUpdatedAt,
+		&user.CreatedAt,
+		&user.AccidentId,
+		&user.BloodGroup,
+		&user.HeightCm,
+		&user.WeightKg,
+		&user.DateOfBirth,
+		&user.ChronicDiseases,
+		&user.Allergies,
+		&user.Medications,
+		&user.Geom,
+		&user.IsBanned,
+		&user.IsVerified,
+		&user.IsDeleted,
+		&user.Uuid,
+		&user.IsQrCodeEnabled,
+		&user.HasHypertension,
+		&user.HasHepatitis,
+		&user.HasHiv,
+	)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -141,11 +221,11 @@ func (r userRepository) GetUserByEmail(email string) (models.User, error) {
 	return user, nil
 }
 
-func (r userRepository) UpdateUserIsVerified(id int, isVerified bool) error {
+func (r userRepository) UpdateUserIsVerified(ctx context.Context, id int, isVerified bool) error {
 
-	query := fmt.Sprintf(`UPDATE %s SET is_verified = ? WHERE id = ?;`, usersTable)
+	query := fmt.Sprintf(`UPDATE %s SET is_verified = $1 WHERE id = $2;`, usersTable)
 
-	_, err := r.db.Exec(query, isVerified, id)
+	_, err := r.db.ExecContext(ctx, query, isVerified, id)
 
 	if err != nil {
 		return err

@@ -21,30 +21,32 @@ import (
 	"github.com/spf13/viper"
 )
 
+// @Version 1.0.0
+// @Host localhost:3000
+// @BasePath /
+// @Title Moto-Alert API
+// @Description Moto-Alert API
 func main() {
 	logrus.SetFormatter(new(logrus.JSONFormatter))
 
-	// We init ./config/config.yml
 	if err := initConfig(); err != nil {
 		logrus.Fatalf("error initializing configs: %s", err.Error())
 	}
 
-	// We init .env
 	if err := godotenv.Load(); err != nil {
 		logrus.Fatalf("error loading .env variables: %s", err.Error())
 	}
 
 	logrus.Printf("Moto-Alert app started on port %d, env: %s", viper.GetInt("general.port"), viper.GetString("general.env"))
 
-	dbLogger, err := postgres.NewDB(
-		postgres.Config{
-			Host:     viper.GetString("database.host"),
-			Port:     viper.GetString("database.port"),
-			Username: viper.GetString("database.user"),
-			DBName:   viper.GetString("database.database"),
-			Password: os.Getenv("DB_PASSWORD"),
-			SSLMode:  "disable",
-		})
+	dbLogger, err := postgres.NewDB(postgres.Config{
+		Host:     viper.GetString("database.host"),
+		Port:     viper.GetString("database.port"),
+		Username: viper.GetString("database.user"),
+		DBName:   viper.GetString("database.database"),
+		Password: os.Getenv("DB_PASSWORD"),
+		SSLMode:  "disable",
+	})
 
 	if err != nil {
 		logrus.Fatalf("failed to initialize db: %s", err.Error())
@@ -53,22 +55,21 @@ func main() {
 	defer dbLogger.Close()
 
 	router := gin.Default()
+	// S W A G A. SWAGA
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	transactioner := transaction.NewSQLTransactioner(dbLogger)
 
 	notificationService := notification.NewService(notification.NewRepository(dbLogger), email.NewService())
 
-	// Swagger
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
 	app.RegisterHandlers(router.Group("/app"),
 		app.NewService(),
 	)
 	auth.RegisterHandlers(router.Group("/auth"),
-		auth.NewService(transactioner, user.NewRepository(dbLogger.DB), notificationService),
+		auth.NewService(transactioner, user.NewRepository(dbLogger), notificationService),
 	)
 	user.RegisterHandlers(router.Group("/user"),
-		user.NewService(transactioner, user.NewRepository(dbLogger.DB)),
+		user.NewService(transactioner, user.NewRepository(dbLogger)),
 	)
 
 	router.Run(":" + viper.GetString("general.port"))

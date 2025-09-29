@@ -37,18 +37,11 @@ func (d *DBLogger) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, e
 	start := time.Now()
 	tx, err := d.DB.BeginTx(ctx, opts)
 	if err != nil {
-		PrintSql(false, fmt.Sprintf("TX. BEGIN;"), &start)
+		PrintSql(false, "TX. BEGIN;", &start)
 		return nil, err
 	}
-	PrintSql(true, fmt.Sprintf("TX. BEGIN;"), &start)
+	PrintSql(true, "TX. BEGIN;", &start)
 	return tx, err
-}
-
-func (d *DBLogger) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
-	start := time.Now()
-	row := d.DB.QueryRowContext(ctx, query, args...)
-	PrintSql(true, query, &start, args...)
-	return row
 }
 
 // Query overrides the default Query method to log the query
@@ -71,10 +64,28 @@ func (d *DBLogger) QueryRow(query string, args ...interface{}) *sql.Row {
 	return row
 }
 
+func (d *DBLogger) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	start := time.Now()
+	row := d.DB.QueryRowContext(ctx, query, args...)
+	PrintSql(true, query, &start, args...)
+	return row
+}
+
 // Exec overrides the default Exec method to log the query
 func (d *DBLogger) Exec(query string, args ...interface{}) (sql.Result, error) {
 	start := time.Now()
 	result, err := d.DB.Exec(query, args...)
+	if err != nil {
+		PrintSql(false, query, &start, args...)
+		return nil, err
+	}
+	PrintSql(true, query, &start, args...)
+	return result, err
+}
+
+func (d *DBLogger) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	start := time.Now()
+	result, err := d.DB.ExecContext(ctx, query, args...)
 	if err != nil {
 		PrintSql(false, query, &start, args...)
 		return nil, err

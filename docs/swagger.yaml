@@ -1,23 +1,84 @@
+basePath: /
 definitions:
+  dto.AboutData:
+    properties:
+      text:
+        type: string
+    type: object
+  dto.AppSettings:
+    properties:
+      env:
+        example: development
+        type: string
+      version:
+        example: 1.0.0
+        type: string
+    type: object
+  dto.GetAboutResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.AboutData'
+      message:
+        example: OK
+        type: string
+      status:
+        example: 200
+        type: integer
+    type: object
+  dto.GetSettingsResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.AppSettings'
+      message:
+        example: OK
+        type: string
+      status:
+        example: 200
+        type: integer
+    type: object
+  dto.SocialLink:
+    properties:
+      link:
+        example: https://t.me/moto_alert
+        type: string
+      name:
+        example: Канал в Telegram
+        type: string
+      type:
+        example: Telegram
+        type: string
+    type: object
+  dto.SocialLinkResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.SocialLink'
+        type: array
+      message:
+        example: OK
+        type: string
+      status:
+        example: 200
+        type: integer
+    type: object
   errors.ErrorResponse:
     properties:
       error:
+        example: BadRequestException
         type: string
       message:
+        example: some error message
         type: string
       status:
+        example: 400
         type: integer
     type: object
-  models.Response:
-    properties:
-      data: {}
-      message:
-        type: string
-      status:
-        type: integer
-    type: object
+host: localhost:3000
 info:
   contact: {}
+  description: Moto-Alert API
+  title: Moto-Alert API
+  version: 1.0.0
 paths:
   /app/about:
     get:
@@ -30,12 +91,63 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/dto.GetAboutResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/errors.ErrorResponse'
       summary: Get app description text
+      tags:
+      - app
+  /app/privacyPolicy:
+    get:
+      consumes:
+      - application/json
+      description: Get privacy policy PDF
+      produces:
+      - application/pdf
+      responses:
+        "200":
+          description: OK
+      summary: Get privacy policy PDF
+      tags:
+      - app
+  /app/settings:
+    get:
+      consumes:
+      - application/json
+      description: Get app settings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.GetSettingsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: Get app settings
+      tags:
+      - app
+  /app/socialLinks:
+    get:
+      consumes:
+      - application/json
+      description: Get app social links
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SocialLinkResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: Get app social links
       tags:
       - app
 swagger: "2.0"
