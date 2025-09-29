@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	_ "github.com/lib/pq"
@@ -49,7 +50,7 @@ func (r *userRepository) CreateUser(ctx context.Context, tx transaction.Transact
 		usersTable,
 	)
 
-	params := []any{
+	params := []interface{}{
 		strings.ToLower(user.Email),
 		user.HashedPassword,
 		user.ExpoPushToken,
@@ -87,7 +88,7 @@ func (r *userRepository) IsUserExistsWithEmail(ctx context.Context, tx transacti
 	var exists bool
 
 	query := fmt.Sprintf(`SELECT EXISTS(SELECT 1 FROM %s WHERE email = $1);`, usersTable)
-	params := []any{strings.ToLower(email)}
+	params := []interface{}{strings.ToLower(email)}
 
 	var row *sql.Row
 	if tx != nil {
@@ -108,7 +109,7 @@ func (r *userRepository) IsUserExistsWithPhone(ctx context.Context, tx transacti
 	var exists bool
 
 	query := fmt.Sprintf(`SELECT EXISTS(SELECT 1 FROM %s WHERE phone = $1);`, usersTable)
-	params := []any{phone}
+	params := []interface{}{phone}
 
 	var row *sql.Row
 	if tx != nil {
@@ -123,6 +124,102 @@ func (r *userRepository) IsUserExistsWithPhone(ctx context.Context, tx transacti
 	}
 
 	return exists, nil
+}
+
+func (r userRepository) GetUserById(ctx context.Context, tx transaction.Transaction, id int) (models.User, error) {
+	var user models.User
+
+	query := fmt.Sprintf(`SELECT 
+		id,
+		code,
+		email,
+		first_name,
+		last_name,
+		username,
+		expo_push_token,
+		gender,
+		phone,
+		longitude,
+		latitude,
+		bike_model,
+		comment,
+		last_auth,
+		geo_updated_at,
+		created_at,
+		accident_id,
+		blood_group,
+		height_cm,
+		weight_kg,
+		date_of_birth,
+		chronic_diseases,
+		allergies,
+		medications,
+		geom,
+		is_banned,
+		is_verified,
+		is_deleted,
+		uuid,
+		is_qr_code_enabled,
+		has_hypertension,
+		has_hepatitis,
+		has_hiv
+	FROM 
+		%s
+	WHERE 
+		id = $1;`, usersTable)
+	params := []interface{}{id}
+
+	var row *sql.Row
+	if tx != nil {
+		row = tx.QueryRowContext(ctx, query, params...)
+	} else {
+		row = r.db.QueryRowContext(ctx, query, params...)
+	}
+
+	err := row.Scan(
+		&user.Id,
+		&user.Code,
+		&user.Email,
+		&user.FirstName,
+		&user.LastName,
+		&user.Username,
+		&user.ExpoPushToken,
+		&user.Gender,
+		&user.Phone,
+		&user.Longitude,
+		&user.Latitude,
+		&user.BikeModel,
+		&user.Comment,
+		&user.LastAuth,
+		&user.GeoUpdatedAt,
+		&user.CreatedAt,
+		&user.AccidentId,
+		&user.BloodGroup,
+		&user.HeightCm,
+		&user.WeightKg,
+		&user.DateOfBirth,
+		&user.ChronicDiseases,
+		&user.Allergies,
+		&user.Medications,
+		&user.Geom,
+		&user.IsBanned,
+		&user.IsVerified,
+		&user.IsDeleted,
+		&user.Uuid,
+		&user.IsQrCodeEnabled,
+		&user.HasHypertension,
+		&user.HasHepatitis,
+		&user.HasHiv,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.User{}, errors.New("user with id " + strconv.Itoa(id) + " not found")
+		}
+		return models.User{}, errors.New("failed to get user by id. Err: " + err.Error())
+	}
+
+	return user, nil
 }
 
 func (r userRepository) GetUserByEmail(ctx context.Context, tx transaction.Transaction, email string) (models.User, error) {
@@ -166,7 +263,7 @@ func (r userRepository) GetUserByEmail(ctx context.Context, tx transaction.Trans
 		%s
 	WHERE 
 		email = $1;`, usersTable)
-	params := []any{email}
+	params := []interface{}{email}
 
 	var row *sql.Row
 	if tx != nil {
@@ -221,11 +318,67 @@ func (r userRepository) GetUserByEmail(ctx context.Context, tx transaction.Trans
 	return user, nil
 }
 
+func (r userRepository) GetUserHashedPassword(ctx context.Context, tx transaction.Transaction, email string) (string, error) {
+	var hashedPassword string
+
+	query := fmt.Sprintf(`SELECT 
+		hashed_password
+	FROM 
+		%s
+	WHERE 
+		email = $1;`, usersTable)
+	params := []interface{}{email}
+
+	var row *sql.Row
+	if tx != nil {
+		row = tx.QueryRowContext(ctx, query, params...)
+	} else {
+		row = r.db.QueryRowContext(ctx, query, params...)
+	}
+
+	err := row.Scan(&hashedPassword)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", errors.New("hashed password for user with email " + email + " not found")
+		}
+		return "", errors.New("failed to get hashed password by email. Err: " + err.Error())
+	}
+
+	return hashedPassword, nil
+}
+
 func (r userRepository) UpdateUserIsVerified(ctx context.Context, id int, isVerified bool) error {
 
 	query := fmt.Sprintf(`UPDATE %s SET is_verified = $1 WHERE id = $2;`, usersTable)
 
 	_, err := r.db.ExecContext(ctx, query, isVerified, id)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r userRepository) UpdateUserPassword(ctx context.Context, email string, hashedPassword string) error {
+
+	query := fmt.Sprintf(`UPDATE %s SET hashed_password = $1 WHERE email = $2;`, usersTable)
+
+	_, err := r.db.ExecContext(ctx, query, hashedPassword, email)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r userRepository) UpdateUserExpoPushToken(ctx context.Context, userId int, expoPushToken *string) error {
+
+	query := fmt.Sprintf(`UPDATE %s SET expo_push_token = $1 WHERE id = $2;`, usersTable)
+
+	_, err := r.db.ExecContext(ctx, query, &expoPushToken, userId)
 
 	if err != nil {
 		return err

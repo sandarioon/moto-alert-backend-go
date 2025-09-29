@@ -13,20 +13,20 @@ type resource struct {
 }
 
 // RegisterHandlers sets up the routing of the HTTP handlers.
-func RegisterHandlers(r *gin.RouterGroup, service Service) {
+func RegisterHandlers(rg *gin.RouterGroup, service Service) {
 	res := resource{service}
 
-	r.GET("/about", res.getAbout)
-	r.GET("/socialLinks", res.getSocialLinks)
-	r.GET("/settings", res.getSettings)
-	r.GET("/privacyPolicy", res.getPrivacyPolicy)
+	rg.GET("/about", res.getAbout)
+	rg.GET("/socialLinks", res.getSocialLinks)
+	rg.GET("/settings", res.getSettings)
+	rg.GET("/privacyPolicy", res.getPrivacyPolicy)
 
 }
 
 // GetAbout godoc
 // @Summary      Get app description text
 // @Description  Get app description text
-// @Tags         app
+// @Tags         app/ public
 // @Accept       json
 // @Produce      json
 // @Success      200  {object}  dto.GetAboutResponse
@@ -51,7 +51,7 @@ func (r *resource) getAbout(c *gin.Context) {
 // GetSocialLinks godoc
 // @Summary      Get app social links
 // @Description  Get app social links
-// @Tags         app
+// @Tags         app/ public
 // @Accept       json
 // @Produce      json
 // @Success      200  {object}  dto.SocialLinkResponse
@@ -70,7 +70,7 @@ func (r *resource) getSocialLinks(c *gin.Context) {
 // GetSettings godoc
 // @Summary      Get app settings
 // @Description  Get app settings
-// @Tags         app
+// @Tags         app/ public
 // @Accept       json
 // @Produce      json
 // @Success      200  {object}  dto.GetSettingsResponse
@@ -93,7 +93,7 @@ func (r *resource) getSettings(c *gin.Context) {
 // GetPrivacyPolicy godoc
 // @Summary      Get privacy policy PDF
 // @Description  Get privacy policy PDF
-// @Tags         app
+// @Tags         app/ public
 // @Accept       json
 // @Produce      application/pdf
 // @Success      200

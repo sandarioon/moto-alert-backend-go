@@ -1,11 +1,13 @@
 package dto
 
-type Response struct {
-	Status  int         `json:"status"`
-	Data    interface{} `json:"data"`
-	Message string      `json:"message"`
+type EmptyResponse struct {
+	Status  int         `json:"status" example:"200"`
+	Data    EmptyObject `json:"data"`
+	Message string      `json:"message" example:"OK"`
 }
 
 const (
 	MessageOK = "OK"
 )
+
+type EmptyObject struct{}

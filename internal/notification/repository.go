@@ -30,7 +30,7 @@ func (r repository) GetEmailTemplateByType(ctx context.Context, tx transaction.T
 	var template models.EmailTemplate
 
 	query := fmt.Sprintf("SELECT * FROM %s WHERE type = $1;", emailTemplatesTable)
-	params := []any{templateType}
+	params := []interface{}{templateType}
 
 	var row *sql.Row
 	if tx != nil {

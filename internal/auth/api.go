@@ -2,10 +2,10 @@ package auth
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sandarioon/moto-alert-backend-go/internal/errors"
+	"github.com/sandarioon/moto-alert-backend-go/internal/helpers"
 	"github.com/sandarioon/moto-alert-backend-go/models/dto"
 )
 
@@ -13,21 +13,33 @@ type resource struct {
 	service Service
 }
 
-func RegisterHandlers(r *gin.RouterGroup, service Service) {
+func RegisterHandlers(rg *gin.RouterGroup, service Service) {
 	res := resource{service}
 
-	r.POST("/create", res.createUser)
-	r.POST("/verifyCode", res.verifyCode)
-	r.POST("/verifyEmail", res.verifyEmail)
-	r.POST("/forgotPassword", res.forgotPassword)
-	r.POST("/login", res.login)
-
+	// Public
+	rg.POST("/create", res.createUser)
+	rg.POST("/verifyCode", res.verifyCode)
+	rg.POST("/verifyEmail", res.verifyEmail)
+	rg.POST("/forgotPassword", res.forgotPassword)
+	rg.POST("/resendCode", res.resendCode)
+	rg.POST("/login", res.login)
+	// Private
+	rg.POST("/logout", AuthMiddleware(), res.logout)
 }
 
+// CreateUser godoc
+// @Summary      Create user
+// @Description  Creates new user if not exists
+// @Tags         auth/ public
+// @Accept       json
+// @Produce      json
+// @Param        input  body    dto.CreateUserRequest  true  "User creation request"
+// @Success      200  {object}  dto.EmptyResponse
+// @Failure      400  {object}  errors.ErrorResponse
+// @Failure      500  {object}  errors.ErrorResponse
+// @Router       /auth/create [post]
 func (r resource) createUser(c *gin.Context) {
 	var input dto.CreateUserRequest
-
-	time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 
 	if err := c.BindJSON(&input); err != nil {
 		errors.NewErrorResponse(c, http.StatusBadRequest, "invalid input body")
@@ -38,21 +50,35 @@ func (r resource) createUser(c *gin.Context) {
 
 	_, err := r.service.CreateUser(ctx, input)
 	if err != nil {
-		if (err.Error() == "Пользователь с таким email уже существует") || (err.Error() == "Пользователь с таким телефоном уже существует") {
+		switch err.Error() {
+		case "Пользователь с таким email уже существует", "Пользователь с таким телефоном уже существует":
 			errors.NewErrorResponse(c, http.StatusBadRequest, err.Error())
 			return
+		default:
+			errors.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
 		}
-		errors.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
-		return
 	}
 
-	c.JSON(http.StatusOK, dto.Response{
+	c.JSON(http.StatusOK, dto.EmptyResponse{
 		Status:  http.StatusCreated,
-		Data:    map[string]string{},
+		Data:    dto.EmptyObject{},
 		Message: dto.MessageOK,
 	})
 }
 
+// VerifyCode godoc
+// @Summary      Verify code
+// @Description  Verify code from email
+// @Tags         auth/ public
+// @Accept       json
+// @Produce      json
+// @Param        input  body    dto.VerifyCodeRequest  true  "Verify code body"
+// @Success      200  {object}  dto.VerifyCodeResponse
+// @Failure      400  {object}  errors.ErrorResponse
+// @Failure      403  {object}  errors.ErrorResponse
+// @Failure      500  {object}  errors.ErrorResponse
+// @Router       /auth/verifyCode [post]
 func (r resource) verifyCode(c *gin.Context) {
 	var input dto.VerifyCodeRequest
 
@@ -65,30 +91,40 @@ func (r resource) verifyCode(c *gin.Context) {
 	token, err := r.service.VerifyCode(ctx, input)
 
 	if err != nil {
-		if err.Error() == "user already verified" {
+		switch err.Error() {
+		case "user already verified":
 			errors.NewErrorResponse(c, http.StatusForbidden, err.Error())
 			return
-		}
-		if err.Error() == "user not found" || err.Error() == "invalid code" {
+		case "user not found", "invalid code":
 			errors.NewErrorResponse(c, http.StatusBadRequest, err.Error())
 			return
+		default:
+			errors.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
 		}
-		errors.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
-		return
 	}
 
-	println(token)
-
-	c.JSON(http.StatusOK, dto.Response{
+	c.JSON(http.StatusOK, dto.VerifyCodeResponse{
 		Status: http.StatusOK,
-		Data: map[string]string{
-			"token": token,
+		Data: dto.JwtToken{
+			Token: token,
 		},
 		Message: dto.MessageOK,
 	})
 
 }
 
+// VerifyEmail godoc
+// @Summary      Verify email
+// @Description  Verify if email is free
+// @Tags         auth/ public
+// @Accept       json
+// @Produce      json
+// @Param        input  body    dto.VerifyEmailRequest  true  "Verify email body"
+// @Success      200  {object}  dto.EmptyResponse
+// @Failure      400  {object}  errors.ErrorResponse
+// @Failure      500  {object}  errors.ErrorResponse
+// @Router       /auth/verifyEmail [post]
 func (r resource) verifyEmail(c *gin.Context) {
 	var input dto.VerifyEmailRequest
 
@@ -102,17 +138,34 @@ func (r resource) verifyEmail(c *gin.Context) {
 	err := r.service.VerifyEmail(ctx, input)
 
 	if err != nil {
-		errors.NewErrorResponse(c, http.StatusBadRequest, err.Error())
-		return
+		switch err.Error() {
+		case "user already exists":
+			errors.NewErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		default:
+			errors.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 
-	c.JSON(http.StatusOK, dto.Response{
+	c.JSON(http.StatusOK, dto.EmptyResponse{
 		Status:  http.StatusOK,
-		Data:    map[string]string{},
+		Data:    dto.EmptyObject{},
 		Message: dto.MessageOK,
 	})
 }
 
+// ForgotPassword godoc
+// @Summary      Forgot password
+// @Description  Sends email for a new password
+// @Tags         auth/ public
+// @Accept       json
+// @Produce      json
+// @Param        input  body    dto.VerifyEmailRequest  true  "Forgot password body"
+// @Success      200  {object}  dto.EmptyResponse
+// @Failure      400  {object}  errors.ErrorResponse
+// @Failure      500  {object}  errors.ErrorResponse
+// @Router       /auth/forgotPassword [post]
 func (r resource) forgotPassword(c *gin.Context) {
 	var input dto.ForgotPasswordRequest
 
@@ -125,20 +178,141 @@ func (r resource) forgotPassword(c *gin.Context) {
 
 	err := r.service.ForgotPassword(ctx, input)
 	if err != nil {
-		errors.NewErrorResponse(c, http.StatusBadRequest, err.Error())
-		return
+		switch err.Error() {
+		case "user not found":
+			errors.NewErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		default:
+			errors.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 
-	c.JSON(http.StatusOK, dto.Response{
+	c.JSON(http.StatusOK, dto.EmptyResponse{
 		Status:  http.StatusOK,
-		Data:    map[string]string{},
+		Data:    dto.EmptyObject{},
 		Message: dto.MessageOK,
 	})
 }
 
-func (r resource) login(c *gin.Context) {
+// ResendCode godoc
+// @Summary      Resend code
+// @Description  Sends a new verification code
+// @Tags         auth/ public
+// @Accept       json
+// @Produce      json
+// @Param        input  body    dto.ResendCodeRequest  true  "Resend code body"
+// @Success      200  {object}  dto.EmptyResponse
+// @Failure      400  {object}  errors.ErrorResponse
+// @Failure      500  {object}  errors.ErrorResponse
+// @Router       /auth/resendCode [post]
+func (r resource) resendCode(c *gin.Context) {
+	var input dto.ResendCodeRequest
 
-	c.JSON(http.StatusOK, map[string]interface{}{
-		"id": "Not implemented",
+	if err := c.BindJSON(&input); err != nil {
+		errors.NewErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	err := r.service.ResendCode(ctx, input)
+	if err != nil {
+		switch err.Error() {
+		case "user not found":
+			errors.NewErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		default:
+			errors.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, dto.EmptyResponse{
+		Status:  http.StatusOK,
+		Data:    dto.EmptyObject{},
+		Message: dto.MessageOK,
+	})
+}
+
+// Login godoc
+// @Summary      Login
+// @Description  login
+// @Tags         auth/ public
+// @Accept       json
+// @Produce      json
+// @Param        input  body    dto.LoginRequest  true  "Login body"
+// @Success      200  {object}  dto.LoginResponse
+// @Failure      400  {object}  errors.ErrorResponse
+// @Failure      403  {object}  errors.ErrorResponse
+// @Failure      500  {object}  errors.ErrorResponse
+// @Router       /auth/login [post]
+func (r resource) login(c *gin.Context) {
+	var input dto.LoginRequest
+
+	if err := c.BindJSON(&input); err != nil {
+		errors.NewErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	token, err := r.service.Login(ctx, input)
+	if err != nil {
+		switch err.Error() {
+		case "user not verified":
+			errors.NewErrorResponse(c, http.StatusForbidden, err.Error())
+			return
+		case "user not found", "invalid password":
+			errors.NewErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		default:
+			errors.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, dto.LoginResponse{
+		Status: http.StatusOK,
+		Data: dto.JwtToken{
+			Token: token,
+		},
+		Message: dto.MessageOK,
+	})
+}
+
+// Logout godoc
+// @Summary      Logout
+// @Description  Logout and remove expo push token
+// @Tags         auth/ private
+// @Produce      json
+// @Success      200  {object}  dto.EmptyResponse
+// @Failure      500  {object}  errors.ErrorResponse
+// @Router       /auth/logout [post]
+func (r resource) logout(c *gin.Context) {
+	userId, err := helpers.GetContextUserId(c)
+	if err != nil {
+		errors.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	err = r.service.Logout(ctx, userId)
+	if err != nil {
+		switch err.Error() {
+		case "user not found":
+			errors.NewErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		default:
+			errors.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, dto.EmptyResponse{
+		Status:  http.StatusOK,
+		Data:    dto.EmptyObject{},
+		Message: dto.MessageOK,
 	})
 }

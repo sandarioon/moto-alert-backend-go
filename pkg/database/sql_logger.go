@@ -18,7 +18,7 @@ func LogExecutionTime(label string, start time.Time) {
 	log.Printf("%s took %v", label, time.Since(start))
 }
 
-func PrintSql(success bool, query string, start *time.Time, args ...any) {
+func PrintSql(success bool, query string, start *time.Time, args ...interface{}) {
 	formattedArgs := formatArgs(args)
 
 	var bgColor string
@@ -35,7 +35,7 @@ func PrintSql(success bool, query string, start *time.Time, args ...any) {
 	)
 }
 
-func formatArgs(args []any) string {
+func formatArgs(args []interface{}) string {
 	formatted := "["
 	for i, param := range args {
 		formatted += fmt.Sprintf("'%v'", param)

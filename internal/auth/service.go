@@ -20,10 +20,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const costFactor = 10
-
-var secretKey = []byte(os.Getenv("JWT_SECRET"))
-
 type service struct {
 	transactioner   transaction.Transactioner
 	userRepo        interfaces.UserRepository
@@ -35,6 +31,9 @@ type Service interface {
 	VerifyCode(ctx context.Context, input dto.VerifyCodeRequest) (string, error)
 	VerifyEmail(ctx context.Context, input dto.VerifyEmailRequest) error
 	ForgotPassword(ctx context.Context, input dto.ForgotPasswordRequest) error
+	ResendCode(ctx context.Context, input dto.ResendCodeRequest) error
+	Login(ctx context.Context, input dto.LoginRequest) (string, error)
+	Logout(ctx context.Context, userId int) error
 }
 
 func NewService(t transaction.Transactioner, userRepo interfaces.UserRepository, notificationSvc notification.Service) Service {
@@ -162,7 +161,7 @@ func (s service) CreateUser(ctx context.Context, input dto.CreateUserRequest) (i
 }
 
 func (s service) hashPassword(password string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), costFactor)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		fmt.Println("Error hashing password:", err)
 		return "", err
@@ -173,7 +172,7 @@ func (s service) hashPassword(password string) (string, error) {
 
 func (s service) checkPassword(hashedPassword, password string) (bool, error) {
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-	if err == nil {
+	if err != nil {
 		fmt.Println("Password comparison failed:", err)
 		return false, err
 	}
@@ -204,7 +203,7 @@ func (s service) VerifyCode(ctx context.Context, input dto.VerifyCodeRequest) (s
 		return "", errors.New("invalid code")
 	}
 
-	token, err = s.createJwtToken(user.Id)
+	token, err = s.generateJwtToken(user.Id)
 	if err != nil {
 		return "", err
 	}
@@ -232,36 +231,114 @@ func (s service) VerifyEmail(ctx context.Context, input dto.VerifyEmailRequest) 
 }
 
 func (s service) ForgotPassword(ctx context.Context, input dto.ForgotPasswordRequest) error {
+	exists, err := s.userRepo.IsUserExistsWithEmail(ctx, nil, input.Email)
 
-	return nil
-}
-
-func (s service) createJwtToken(id int) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
-		jwt.MapClaims{
-			"id":  id,
-			"exp": time.Now().Add(time.Hour * 24).Unix(),
-		})
-
-	tokenString, err := token.SignedString(secretKey)
-	if err != nil {
-		return "", err
+	if !exists {
+		return errors.New("user not found")
 	}
-
-	return tokenString, nil
-}
-
-func verifyToken(tokenString string) error {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		return secretKey, nil
-	})
-
 	if err != nil {
 		return err
 	}
 
-	if !token.Valid {
-		return errors.New("invalid token")
+	newPass, err := helpers.GenerateRandomString(12)
+	if err != nil {
+		return errors.New("failed to generate random string. Err: " + err.Error())
+	}
+
+	hashedPassword, err := s.hashPassword(newPass)
+	if err != nil {
+		return errors.New("failed to hash password. Err: " + err.Error())
+	}
+
+	err = s.userRepo.UpdateUserPassword(ctx, input.Email, hashedPassword)
+	if err != nil {
+		return errors.New("failed to update user password. Err: " + err.Error())
+	}
+
+	err = s.notificationSvc.SendEmail(ctx, nil, string(models.SEND_NEW_PASSWORD), input.Email, map[string]string{
+		"password": newPass,
+	})
+	if err != nil {
+		return errors.New("failed to send email. Err: " + err.Error())
+	}
+
+	return nil
+}
+
+func (s service) generateJwtToken(userId int) (string, error) {
+	now := time.Now()
+
+	claims := Claims{
+		UserId: userId,
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(time.Duration(time.Hour * 12))),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+}
+
+func (s service) ResendCode(ctx context.Context, input dto.ResendCodeRequest) error {
+	user, err := s.userRepo.GetUserByEmail(ctx, nil, input.Email)
+	if err != nil {
+		return err
+	}
+	if user.Id == 0 {
+		return errors.New("Пользователь с таким email уже существует")
+	}
+
+	emailParams := map[string]string{"code": user.Code}
+
+	err = s.notificationSvc.SendEmail(ctx, nil, string(models.SEND_CODE), input.Email, emailParams)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s service) Login(ctx context.Context, input dto.LoginRequest) (string, error) {
+	var token string
+	user, err := s.userRepo.GetUserByEmail(ctx, nil, input.Email)
+	if err != nil {
+		return "", err
+	}
+	if user.Id == 0 {
+		return "", errors.New("user not found")
+	}
+
+	if !user.IsVerified {
+		return "", errors.New("user not verified")
+	}
+
+	hashedPassword, err := s.userRepo.GetUserHashedPassword(ctx, nil, input.Email)
+	if err != nil {
+		return "", err
+	}
+
+	isValid, err := s.checkPassword(hashedPassword, input.Password)
+	if err != nil {
+		return "", errors.New("failed to check password")
+	}
+
+	if !isValid {
+		return "", errors.New("invalid password")
+	}
+
+	token, err = s.generateJwtToken(user.Id)
+	if err != nil {
+		return "", errors.New("failed to create jwt token. Err: " + err.Error())
+	}
+
+	return token, nil
+}
+
+func (s service) Logout(ctx context.Context, userId int) error {
+	err := s.userRepo.UpdateUserExpoPushToken(ctx, userId, nil)
+	if err != nil {
+		return err
 	}
 
 	return nil

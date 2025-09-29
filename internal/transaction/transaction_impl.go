@@ -40,7 +40,7 @@ func (st *SQLTransaction) Rollback() error {
 	return st.tx.Rollback()
 }
 
-func (st *SQLTransaction) Exec(query string, args ...any) (sql.Result, error) {
+func (st *SQLTransaction) Exec(query string, args ...interface{}) (sql.Result, error) {
 	start := time.Now()
 
 	result, err := st.tx.Exec(query, args...)
@@ -52,14 +52,14 @@ func (st *SQLTransaction) Exec(query string, args ...any) (sql.Result, error) {
 	return result, err
 }
 
-func (st *SQLTransaction) QueryRow(query string, args ...any) *sql.Row {
+func (st *SQLTransaction) QueryRow(query string, args ...interface{}) *sql.Row {
 	start := time.Now()
 
 	row := st.tx.QueryRow(query, args...)
 	postgres.PrintSql(true, "TX. "+query, &start, args...)
 	return row
 }
-func (st *SQLTransaction) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+func (st *SQLTransaction) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
 	start := time.Now()
 
 	row := st.tx.QueryRowContext(ctx, query, args...)
