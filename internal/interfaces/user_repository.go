@@ -5,6 +5,7 @@ import (
 
 	"github.com/sandarioon/moto-alert-backend-go/internal/transaction"
 	"github.com/sandarioon/moto-alert-backend-go/models"
+	"github.com/sandarioon/moto-alert-backend-go/models/dto"
 )
 
 type UserRepository interface {
@@ -16,5 +17,6 @@ type UserRepository interface {
 	IsUserExistsWithEmail(ctx context.Context, tx transaction.Transaction, email string) (bool, error)
 	UpdateUserPassword(ctx context.Context, email string, hashedPassword string) error
 	UpdateUserExpoPushToken(ctx context.Context, userId int, expoPushToken *string) error
+	UpdateUserProfileData(ctx context.Context, userId int, input dto.EditUserRequest) error
 	GetUserHashedPassword(ctx context.Context, tx transaction.Transaction, email string) (string, error)
 }

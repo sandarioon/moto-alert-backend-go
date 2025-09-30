@@ -9,11 +9,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const (
-	usersTable     = "users"
-	accidentsTable = "accidents"
-)
-
 type Config struct {
 	Host     string
 	Port     string
@@ -95,7 +90,6 @@ func (d *DBLogger) ExecContext(ctx context.Context, query string, args ...interf
 }
 
 func NewDB(cfg Config) (*DBLogger, error) {
-	// fmt.Printf("DB config: %+v", cfg)
 	connStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=%s",
 		cfg.Username,
 		cfg.Password,

@@ -12,6 +12,7 @@ import (
 
 	"github.com/sandarioon/moto-alert-backend-go/internal/transaction"
 	"github.com/sandarioon/moto-alert-backend-go/models"
+	"github.com/sandarioon/moto-alert-backend-go/models/dto"
 	postgres "github.com/sandarioon/moto-alert-backend-go/pkg/database"
 )
 
@@ -382,6 +383,69 @@ func (r userRepository) UpdateUserExpoPushToken(ctx context.Context, userId int,
 
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (r userRepository) UpdateUserProfileData(ctx context.Context, userId int, input dto.EditUserRequest) error {
+	var (
+		queryParts []string
+		args       []interface{}
+		argIndex   = 1
+	)
+
+	// TODO
+	// Нужно добавить сюда валидации на поля
+	if input.FirstName != nil {
+		queryParts = append(queryParts, fmt.Sprintf("first_name = $%d", argIndex))
+		args = append(args, *input.FirstName)
+		argIndex++
+	}
+	if input.LastName != nil {
+		queryParts = append(queryParts, fmt.Sprintf("last_name = $%d", argIndex))
+		args = append(args, *input.LastName)
+		argIndex++
+	}
+	if input.Username != nil {
+		queryParts = append(queryParts, fmt.Sprintf("username = $%d", argIndex))
+		args = append(args, *input.Username)
+		argIndex++
+	}
+	if input.Phone != nil {
+		queryParts = append(queryParts, fmt.Sprintf("phone = $%d", argIndex))
+		args = append(args, *input.Phone)
+		argIndex++
+	}
+	if input.BikeModel != nil {
+		queryParts = append(queryParts, fmt.Sprintf("bike_model = $%d", argIndex))
+		args = append(args, *input.BikeModel)
+		argIndex++
+	}
+	if input.Gender != nil {
+		queryParts = append(queryParts, fmt.Sprintf("gender = $%d", argIndex))
+		args = append(args, *input.Gender)
+		argIndex++
+	}
+
+	if len(queryParts) == 0 {
+		return nil
+	}
+
+	query := fmt.Sprintf(`UPDATE %s SET %s WHERE id = $%d`, usersTable, strings.Join(queryParts, ", "), argIndex)
+	args = append(args, userId)
+
+	result, err := r.db.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.New("failed to update user: " + err.Error())
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return errors.New("failed to check affected rows: " + err.Error())
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("user with id %d not found", userId)
 	}
 
 	return nil

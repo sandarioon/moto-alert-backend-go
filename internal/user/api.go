@@ -1,6 +1,7 @@
 package user
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,6 +20,7 @@ func RegisterHandlers(rg *gin.RouterGroup, service Service) {
 
 	rg.Use(auth.AuthMiddleware())
 	rg.GET("/profile", res.getProfile)
+	rg.POST("/edit", res.editUser)
 
 }
 
@@ -41,6 +43,46 @@ func (r resource) getProfile(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	user, err := r.service.GetProfile(ctx, nil, userId)
+	if err != nil {
+		errors.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.ProfileResponse{
+		Status:  http.StatusOK,
+		Data:    FormatUser(user),
+		Message: dto.MessageOK,
+	})
+}
+
+// EditUser godoc
+// @Summary      Edit user
+// @Description  Edit user
+// @Tags         user/ private
+// @Produce      json
+// @Success      200  {object}  dto.ProfileResponse
+// @Success      401  {object}  errors.ErrorResponse
+// @Failure      500  {object}  errors.ErrorResponse
+// @Router       /user/edit [post]
+func (r resource) editUser(c *gin.Context) {
+	userId, err := helpers.GetContextUserId(c)
+	if err != nil {
+		errors.NewErrorResponse(c, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	var input dto.EditUserRequest
+
+	if err := c.BindJSON(&input); err != nil {
+		errors.NewErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		return
+	}
+
+	fmt.Printf("input: %+v", input)
+
+	ctx := c.Request.Context()
+
+	user, err := r.service.EditUser(ctx, nil, userId, input)
 	if err != nil {
 		errors.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return

@@ -2,6 +2,8 @@ package dto
 
 import (
 	"time"
+
+	"github.com/sandarioon/moto-alert-backend-go/models"
 )
 
 type ProfileResponse struct {
@@ -11,35 +13,43 @@ type ProfileResponse struct {
 }
 
 type UserResponse struct {
-	Id              int        `json:"id"`
-	Code            string     `json:"code"`
-	Email           string     `json:"email"`
-	FirstName       *string    `json:"firstName,omitempty"`
-	LastName        *string    `json:"lastName,omitempty"`
-	Username        *string    `json:"username,omitempty"`
-	ExpoPushToken   *string    `json:"expoPushToken,omitempty"`
-	Gender          string     `json:"gender"`
-	Phone           *string    `json:"phone,omitempty"`
-	Longitude       *string    `json:"longitude,omitempty"`
-	Latitude        *string    `json:"latitude,omitempty"`
-	BikeModel       *string    `json:"bikeModel,omitempty"`
-	Comment         *string    `json:"comment,omitempty"`
-	LastAuth        *time.Time `json:"lastAuth,omitempty"`
-	GeoUpdatedAt    *time.Time `json:"geoUpdatedAt,omitempty"`
-	CreatedAt       time.Time  `json:"createdAt"`
-	AccidentId      *int16     `json:"accidentId,omitempty"`
+	Id              int             `json:"id"`
+	Email           string          `json:"email"`
+	FirstName       *string         `json:"firstName"`
+	LastName        *string         `json:"lastName"`
+	Username        *string         `json:"username"`
+	ExpoPushToken   *string         `json:"expoPushToken"`
+	Gender          string          `json:"gender"`
+	Phone           *string         `json:"phone"`
+	Longitude       *string         `json:"longitude"`
+	Latitude        *string         `json:"latitude"`
+	BikeModel       *string         `json:"bikeModel"`
+	GeoUpdatedAt    *time.Time      `json:"geoUpdatedAt"`
+	CreatedAt       time.Time       `json:"createdAt"`
+	AccidentId      *int16          `json:"accidentId"`
+	MedicalInfo     UserMedicalInfo `json:"medicalInfo"`
+	IsQrCodeEnabled bool            `json:"isQrCodeEnabled"`
+	QrCodeUrl       string          `json:"qrCodeUrl"`
+}
+
+type UserMedicalInfo struct {
 	BloodGroup      string     `json:"bloodGroup"`
-	HeightCm        *int16     `json:"heightCm,omitempty"`
-	WeightKg        *int16     `json:"weightKg,omitempty"`
-	DateOfBirth     *time.Time `json:"dateOfBirth,omitempty"`
-	ChronicDiseases *string    `json:"chronicDiseases,omitempty"`
-	Allergies       *string    `json:"allergies,omitempty"`
-	Medications     *string    `json:"medications,omitempty"`
-	IsBanned        bool       `json:"isBanned"`
-	IsVerified      bool       `json:"isVerified"`
-	Uuid            string     `json:"uuid"`
-	IsQrCodeEnabled bool       `json:"isQrCodeEnabled"`
+	HeightCm        *int16     `json:"heightCm"`
+	WeightKg        *int16     `json:"weightKg"`
+	DateOfBirth     *time.Time `json:"dateOfBirth"`
+	ChronicDiseases *string    `json:"chronicDiseases"`
+	Allergies       *string    `json:"allergies"`
+	Medications     *string    `json:"medications"`
 	HasHypertension string     `json:"hasHypertension"`
 	HasHepatitis    string     `json:"hasHepatitis"`
 	HasHiv          string     `json:"hasHiv"`
+}
+
+type EditUserRequest struct {
+	FirstName *string            `json:"firstName"`
+	LastName  *string            `json:"lastName"`
+	Username  *string            `json:"username"`
+	Phone     *string            `json:"phone"`
+	BikeModel *string            `json:"bikeModel"`
+	Gender    *models.UserGender `json:"gender"`
 }
