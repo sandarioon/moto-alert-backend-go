@@ -149,25 +149,36 @@ definitions:
         example: 200
         type: integer
     type: object
-  dto.UserResponse:
+  dto.UserMedicalInfo:
     properties:
-      accidentId:
-        type: integer
       allergies:
-        type: string
-      bikeModel:
         type: string
       bloodGroup:
         type: string
       chronicDiseases:
         type: string
-      code:
+      dateOfBirth:
         type: string
-      comment:
+      hasHepatitis:
+        type: string
+      hasHiv:
+        type: string
+      hasHypertension:
+        type: string
+      heightCm:
+        type: integer
+      medications:
+        type: string
+      weightKg:
+        type: integer
+    type: object
+  dto.UserResponse:
+    properties:
+      accidentId:
+        type: integer
+      bikeModel:
         type: string
       createdAt:
-        type: string
-      dateOfBirth:
         type: string
       email:
         type: string
@@ -179,40 +190,24 @@ definitions:
         type: string
       geoUpdatedAt:
         type: string
-      hasHepatitis:
-        type: string
-      hasHiv:
-        type: string
-      hasHypertension:
-        type: string
-      heightCm:
-        type: integer
       id:
         type: integer
-      isBanned:
-        type: boolean
       isQrCodeEnabled:
         type: boolean
-      isVerified:
-        type: boolean
-      lastAuth:
-        type: string
       lastName:
         type: string
       latitude:
-        type: string
+        type: number
       longitude:
-        type: string
-      medications:
-        type: string
+        type: number
+      medicalInfo:
+        $ref: '#/definitions/dto.UserMedicalInfo'
       phone:
+        type: string
+      qrCodeUrl:
         type: string
       username:
         type: string
-      uuid:
-        type: string
-      weightKg:
-        type: integer
     type: object
   dto.VerifyCodeRequest:
     properties:
@@ -546,6 +541,31 @@ paths:
       summary: Verify email
       tags:
       - auth/ public
+  /user/edit:
+    post:
+      description: Edit user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ProfileResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: Edit user
+      tags:
+      - user/ private
   /user/profile:
     get:
       description: Returns user data
@@ -565,6 +585,31 @@ paths:
           schema:
             $ref: '#/definitions/errors.ErrorResponse'
       summary: Profile
+      tags:
+      - user/ private
+  /user/updateLocation:
+    post:
+      description: Update user location
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ProfileResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: Update location
       tags:
       - user/ private
 swagger: "2.0"

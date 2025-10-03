@@ -450,3 +450,16 @@ func (r userRepository) UpdateUserProfileData(ctx context.Context, userId int, i
 
 	return nil
 }
+
+func (r userRepository) UpdateUserLocation(ctx context.Context, userId int, input dto.UpdateLocationRequest) error {
+
+	query := fmt.Sprintf(`UPDATE %s SET longitude = $1, latitude = $2 WHERE id = $3;`, usersTable)
+
+	_, err := r.db.ExecContext(ctx, query, input.Longitude, input.Latitude, userId)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

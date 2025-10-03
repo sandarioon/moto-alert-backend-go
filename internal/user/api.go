@@ -1,7 +1,6 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -21,6 +20,7 @@ func RegisterHandlers(rg *gin.RouterGroup, service Service) {
 	rg.Use(auth.AuthMiddleware())
 	rg.GET("/profile", res.getProfile)
 	rg.POST("/edit", res.editUser)
+	rg.POST("/updateLocation", res.updateLocation)
 
 }
 
@@ -61,6 +61,7 @@ func (r resource) getProfile(c *gin.Context) {
 // @Tags         user/ private
 // @Produce      json
 // @Success      200  {object}  dto.ProfileResponse
+// @Success      400  {object}  errors.ErrorResponse
 // @Success      401  {object}  errors.ErrorResponse
 // @Failure      500  {object}  errors.ErrorResponse
 // @Router       /user/edit [post]
@@ -78,11 +79,87 @@ func (r resource) editUser(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("input: %+v", input)
-
 	ctx := c.Request.Context()
 
 	user, err := r.service.EditUser(ctx, nil, userId, input)
+	if err != nil {
+		errors.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.ProfileResponse{
+		Status:  http.StatusOK,
+		Data:    FormatUser(user),
+		Message: dto.MessageOK,
+	})
+}
+
+// UpdateLocation godoc
+// @Summary      Update location
+// @Description  Update user location
+// @Tags         user/ private
+// @Produce      json
+// @Success      200  {object}  dto.ProfileResponse
+// @Success      400  {object}  errors.ErrorResponse
+// @Success      401  {object}  errors.ErrorResponse
+// @Failure      500  {object}  errors.ErrorResponse
+// @Router       /user/updateLocation [post]
+func (r resource) updateLocation(c *gin.Context) {
+	userId, err := helpers.GetContextUserId(c)
+	if err != nil {
+		errors.NewErrorResponse(c, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	var input dto.UpdateLocationRequest
+
+	if err := c.BindJSON(&input); err != nil {
+		errors.NewErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	user, err := r.service.UpdateLocation(ctx, nil, userId, input)
+	if err != nil {
+		errors.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.ProfileResponse{
+		Status:  http.StatusOK,
+		Data:    FormatUser(user),
+		Message: dto.MessageOK,
+	})
+}
+
+// UpdateExpoPushToken godoc
+// @Summary      	   Update expo push token
+// @Description        Update user expo push token
+// @Tags               user/ private
+// @Produce            json
+// @Success            200  {object}  dto.ProfileResponse
+// @Success            400  {object}  errors.ErrorResponse
+// @Success            401  {object}  errors.ErrorResponse
+// @Failure            500  {object}  errors.ErrorResponse
+// @Router       	   /user/updateExpoPushToken [post]
+func (r resource) updateExpoPushToken(c *gin.Context) {
+	userId, err := helpers.GetContextUserId(c)
+	if err != nil {
+		errors.NewErrorResponse(c, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	var input dto.UpdateLocationRequest
+
+	if err := c.BindJSON(&input); err != nil {
+		errors.NewErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	user, err := r.service.UpdateLocation(ctx, nil, userId, input)
 	if err != nil {
 		errors.NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return

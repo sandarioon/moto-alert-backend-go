@@ -31,7 +31,7 @@ type Request struct {
 	Params      map[string]string `json:"params"`
 }
 
-func (s *service) SendTransactionalEmail(senderName string, senderEmail string, recipientEmail string, subject string, htmlContent string, params map[string]string) error {
+func (s service) SendTransactionalEmail(senderName string, senderEmail string, recipientEmail string, subject string, htmlContent string, params map[string]string) error {
 	url := "https://api.brevo.com/v3/smtp/email"
 
 	payload := Request{

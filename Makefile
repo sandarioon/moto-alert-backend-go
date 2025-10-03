@@ -23,3 +23,6 @@ migration-revert:
 
 docker: 
 	docker-compose -p moto-alerts up -d
+
+fmt:
+	go fmt ./...

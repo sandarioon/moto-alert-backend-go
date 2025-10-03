@@ -21,8 +21,8 @@ type UserResponse struct {
 	ExpoPushToken   *string         `json:"expoPushToken"`
 	Gender          string          `json:"gender"`
 	Phone           *string         `json:"phone"`
-	Longitude       *string         `json:"longitude"`
-	Latitude        *string         `json:"latitude"`
+	Longitude       *float64        `json:"longitude"`
+	Latitude        *float64        `json:"latitude"`
 	BikeModel       *string         `json:"bikeModel"`
 	GeoUpdatedAt    *time.Time      `json:"geoUpdatedAt"`
 	CreatedAt       time.Time       `json:"createdAt"`
@@ -52,4 +52,13 @@ type EditUserRequest struct {
 	Phone     *string            `json:"phone"`
 	BikeModel *string            `json:"bikeModel"`
 	Gender    *models.UserGender `json:"gender"`
+}
+
+type UpdateLocationRequest struct {
+	Longitude float64 `json:"longitude"`
+	Latitude  float64 `json:"latitude"`
+}
+
+type UpdateExpoPushTokenRequest struct {
+	ExpoPushToken string `json:"expoPushToken"`
 }

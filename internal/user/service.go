@@ -2,10 +2,9 @@ package user
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-	"time"
 
+	h "github.com/sandarioon/moto-alert-backend-go/internal/helpers"
 	"github.com/sandarioon/moto-alert-backend-go/internal/interfaces"
 	"github.com/sandarioon/moto-alert-backend-go/internal/transaction"
 	"github.com/sandarioon/moto-alert-backend-go/models"
@@ -21,6 +20,7 @@ type service struct {
 type Service interface {
 	GetProfile(ctx context.Context, tx transaction.Transaction, userId int) (models.User, error)
 	EditUser(ctx context.Context, tx transaction.Transaction, userId int, input dto.EditUserRequest) (models.User, error)
+	UpdateLocation(ctx context.Context, tx transaction.Transaction, userId int, input dto.UpdateLocationRequest) (models.User, error)
 }
 
 func NewService(t transaction.Transactioner, userRepo interfaces.UserRepository) Service {
@@ -45,42 +45,55 @@ func (s service) EditUser(ctx context.Context, tx transaction.Transaction, userI
 	return user, err
 }
 
+func (s service) UpdateLocation(ctx context.Context, tx transaction.Transaction, userId int, input dto.UpdateLocationRequest) (models.User, error) {
+	err := s.userRepo.UpdateUserLocation(ctx, userId, input)
+	if err != nil {
+		return models.User{}, err
+	}
+
+	user, err := s.userRepo.GetUserById(ctx, tx, userId)
+	if err != nil {
+		return models.User{}, err
+	}
+
+	return user, err
+}
+
 func FormatUser(u models.User) dto.UserResponse {
 	return dto.UserResponse{
 		Id:            u.Id,
 		Email:         u.Email,
-		FirstName:     nullStringToPtr(u.FirstName),
-		LastName:      nullStringToPtr(u.LastName),
-		Username:      nullStringToPtr(u.Username),
-		ExpoPushToken: nullStringToPtr(u.ExpoPushToken),
+		FirstName:     h.NullStringToPtr(u.FirstName),
+		LastName:      h.NullStringToPtr(u.LastName),
+		Username:      h.NullStringToPtr(u.Username),
+		ExpoPushToken: h.NullStringToPtr(u.ExpoPushToken),
 		Gender:        string(u.Gender),
-		Phone:         nullStringToPtr(u.Phone),
-		Longitude:     nullStringToPtr(u.Longitude),
-		Latitude:      nullStringToPtr(u.Latitude),
-		BikeModel:     nullStringToPtr(u.BikeModel),
+		Phone:         h.NullStringToPtr(u.Phone),
+		Longitude:     h.NullFloat64ToPtr(u.Longitude),
+		Latitude:      h.NullFloat64ToPtr(u.Latitude),
+		BikeModel:     h.NullStringToPtr(u.BikeModel),
 		MedicalInfo: dto.UserMedicalInfo{
 			BloodGroup:      string(u.BloodGroup),
-			HeightCm:        nullInt16ToPtr(u.HeightCm),
-			WeightKg:        nullInt16ToPtr(u.WeightKg),
-			DateOfBirth:     nullTimeToPtr(u.DateOfBirth),
-			ChronicDiseases: nullStringToPtr(u.ChronicDiseases),
-			Allergies:       nullStringToPtr(u.Allergies),
-			Medications:     nullStringToPtr(u.Medications),
+			HeightCm:        h.NullInt16ToPtr(u.HeightCm),
+			WeightKg:        h.NullInt16ToPtr(u.WeightKg),
+			DateOfBirth:     h.NullTimeToPtr(u.DateOfBirth),
+			ChronicDiseases: h.NullStringToPtr(u.ChronicDiseases),
+			Allergies:       h.NullStringToPtr(u.Allergies),
+			Medications:     h.NullStringToPtr(u.Medications),
 			HasHypertension: u.HasHypertension,
 			HasHepatitis:    u.HasHepatitis,
 			HasHiv:          u.HasHiv,
 		},
-		GeoUpdatedAt:    nullTimeToPtr(u.GeoUpdatedAt),
+		GeoUpdatedAt:    h.NullTimeToPtr(u.GeoUpdatedAt),
 		CreatedAt:       u.CreatedAt,
-		AccidentId:      nullInt16ToPtr(u.AccidentId),
+		AccidentId:      h.NullInt16ToPtr(u.AccidentId),
 		QrCodeUrl:       formatQrCodeUrl(u.Uuid),
 		IsQrCodeEnabled: u.IsQrCodeEnabled,
 	}
 }
 
 func formatQrCodeUrl(uuid string) string {
-	env := viper.GetString("general.env")
-	switch env {
+	switch env := viper.GetString("general.env"); env {
 	case "local":
 		return fmt.Sprintf("http://localhost:%s/user/publicProfile/%s", viper.GetString("general.port"), uuid)
 	case "production":
@@ -90,25 +103,4 @@ func formatQrCodeUrl(uuid string) string {
 	default:
 		return fmt.Sprintf("https://production.moto-alert.ru/user/publicProfile/%s", uuid)
 	}
-}
-
-func nullStringToPtr(ns sql.NullString) *string {
-	if ns.Valid {
-		return &ns.String
-	}
-	return nil
-}
-
-func nullInt16ToPtr(n sql.NullInt16) *int16 {
-	if n.Valid {
-		return &n.Int16
-	}
-	return nil
-}
-
-func nullTimeToPtr(nt sql.NullTime) *time.Time {
-	if nt.Valid {
-		return &nt.Time
-	}
-	return nil
 }

@@ -2,9 +2,11 @@ package helpers
 
 import (
 	"crypto/rand"
+	"database/sql"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -36,4 +38,32 @@ func GenerateRandomString(length int) (string, error) {
 
 	// Encode the random bytes to a base64 string
 	return base64.URLEncoding.EncodeToString(bytes), nil
+}
+
+func NullStringToPtr(ns sql.NullString) *string {
+	if ns.Valid {
+		return &ns.String
+	}
+	return nil
+}
+
+func NullInt16ToPtr(n sql.NullInt16) *int16 {
+	if n.Valid {
+		return &n.Int16
+	}
+	return nil
+}
+
+func NullFloat64ToPtr(n sql.NullFloat64) *float64 {
+	if n.Valid {
+		return &n.Float64
+	}
+	return nil
+}
+
+func NullTimeToPtr(nt sql.NullTime) *time.Time {
+	if nt.Valid {
+		return &nt.Time
+	}
+	return nil
 }

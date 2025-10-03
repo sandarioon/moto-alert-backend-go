@@ -436,6 +436,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/user/edit": {
+            "post": {
+                "description": "Edit user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user/ private"
+                ],
+                "summary": "Edit user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ProfileResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/user/profile": {
             "get": {
                 "description": "Returns user data",
@@ -451,6 +489,44 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/dto.ProfileResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/updateLocation": {
+            "post": {
+                "description": "Update user location",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user/ private"
+                ],
+                "summary": "Update location",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ProfileResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
                         }
                     },
                     "401": {
@@ -689,16 +765,10 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UserResponse": {
+        "dto.UserMedicalInfo": {
             "type": "object",
             "properties": {
-                "accidentId": {
-                    "type": "integer"
-                },
                 "allergies": {
-                    "type": "string"
-                },
-                "bikeModel": {
                     "type": "string"
                 },
                 "bloodGroup": {
@@ -707,16 +777,39 @@ const docTemplate = `{
                 "chronicDiseases": {
                     "type": "string"
                 },
-                "code": {
+                "dateOfBirth": {
                     "type": "string"
                 },
-                "comment": {
+                "hasHepatitis": {
+                    "type": "string"
+                },
+                "hasHiv": {
+                    "type": "string"
+                },
+                "hasHypertension": {
+                    "type": "string"
+                },
+                "heightCm": {
+                    "type": "integer"
+                },
+                "medications": {
+                    "type": "string"
+                },
+                "weightKg": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.UserResponse": {
+            "type": "object",
+            "properties": {
+                "accidentId": {
+                    "type": "integer"
+                },
+                "bikeModel": {
                     "type": "string"
                 },
                 "createdAt": {
-                    "type": "string"
-                },
-                "dateOfBirth": {
                     "type": "string"
                 },
                 "email": {
@@ -734,56 +827,32 @@ const docTemplate = `{
                 "geoUpdatedAt": {
                     "type": "string"
                 },
-                "hasHepatitis": {
-                    "type": "string"
-                },
-                "hasHiv": {
-                    "type": "string"
-                },
-                "hasHypertension": {
-                    "type": "string"
-                },
-                "heightCm": {
-                    "type": "integer"
-                },
                 "id": {
                     "type": "integer"
                 },
-                "isBanned": {
-                    "type": "boolean"
-                },
                 "isQrCodeEnabled": {
                     "type": "boolean"
-                },
-                "isVerified": {
-                    "type": "boolean"
-                },
-                "lastAuth": {
-                    "type": "string"
                 },
                 "lastName": {
                     "type": "string"
                 },
                 "latitude": {
-                    "type": "string"
+                    "type": "number"
                 },
                 "longitude": {
-                    "type": "string"
+                    "type": "number"
                 },
-                "medications": {
-                    "type": "string"
+                "medicalInfo": {
+                    "$ref": "#/definitions/dto.UserMedicalInfo"
                 },
                 "phone": {
                     "type": "string"
                 },
+                "qrCodeUrl": {
+                    "type": "string"
+                },
                 "username": {
                     "type": "string"
-                },
-                "uuid": {
-                    "type": "string"
-                },
-                "weightKg": {
-                    "type": "integer"
                 }
             }
         },
